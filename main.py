@@ -37,7 +37,7 @@ def pre_flight():
 def process_event():
     try:
         payload = request.json
-        log_payload("REQUEST PAYLOAD", payload)
+        log_payload("REQUEST BODY", payload)
 
         # APPLICATION LOGIC HERE #
 
@@ -51,7 +51,7 @@ def process_event():
 
 # HELPER FUNCTIONS
 def log_payload(payload_id, payload):
-    logger.info(f'{request.method}|{request.full_path}|{payload_id}>>>\n{json.dumps(payload, indent=3)}')
+    logger.info(f'{request.method} | {request.full_path} | {payload_id} >>>\n{json.dumps(payload, indent=3)}')
 
 
 def create_response(response_payload):

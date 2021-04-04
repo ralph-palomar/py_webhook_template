@@ -51,7 +51,7 @@ def process_event():
 
 # HELPER FUNCTIONS
 def log_payload(payload_id, payload):
-    logger.info(f'{payload_id}>>>\n{json.dumps(payload, indent=3)}')
+    logger.info(f'{request.method}|{request.full_path}|{payload_id}>>>\n{json.dumps(payload, indent=3)}')
 
 
 def create_response(response_payload):

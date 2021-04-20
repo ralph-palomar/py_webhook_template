@@ -1,23 +1,17 @@
 from flask import Flask, request, jsonify
 from waitress import serve
 from paste.translogger import TransLogger
-from logging.handlers import RotatingFileHandler
-import logging
-import os
-import json
+from config import logger
+from rphelpers import log_payload, create_response, is_authenticated, unauthorized
+from functools import wraps
 
 # APP CONFIG
 api = Flask(__name__)
+api_name = "py-webhook"
+api_version = "v1"
 
 # REQUEST PATH
-base_path = '/api/v1/py-webhook'
-
-# SETUP ROTATING LOGGERS
-logger = logging.getLogger('waitress')
-handler = RotatingFileHandler(filename=f'{__name__}.log', mode='a', maxBytes=20 * 1024 * 1024, backupCount=5)
-handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(funcName)s (%(lineno)d) %(message)s'))
-logger.addHandler(handler)
-logger.setLevel(logging.INFO)
+base_path = f'/api/{api_version}/{api_name}'
 
 # MAIN ENTRY POINT
 if __name__ == '__main__':
@@ -25,6 +19,21 @@ if __name__ == '__main__':
         serve(TransLogger(api, logger=logger), host='0.0.0.0', port=5000, threads=16)
     except Exception as ex:
         logger.exception(ex)
+
+
+# BASIC AUTHENTICATION WRAPPER
+def requires_basic_authentication(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            auth = request.authorization
+            if not auth or not is_authenticated(auth.username, auth.password):
+                return unauthorized()
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.exception(e)
+
+    return wrapper
 
 
 # CORS CHECKPOINT
@@ -45,22 +54,5 @@ def process_event():
             "status": "success"
         }), 200
 
-    except Exception as e:
-        logger.exception(e)
-
-
-# HELPER FUNCTIONS
-def log_payload(payload_id, payload):
-    logger.info(f'{request.method} | {request.full_path} | {payload_id} >>>\n{json.dumps(payload, indent=3)}')
-
-
-def create_response(response_payload):
-    try:
-        response = jsonify(response_payload)
-        response.headers['Access-Control-Allow-Origin'] = os.environ['ALLOWED_ORIGIN']
-        response.headers['Access-Control-Allow-Headers'] = os.environ['ALLOWED_HEADERS']
-        response.headers['Access-Control-Allow-Methods'] = os.environ['ALLOWED_METHODS']
-        response.headers['Access-Control-Max-Age'] = 3600
-        return response
     except Exception as e:
         logger.exception(e)

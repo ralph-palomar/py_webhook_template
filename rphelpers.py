@@ -1,3 +1,4 @@
+from functools import wraps
 from hashlib import sha1
 from config import logger
 from flask import request, jsonify
@@ -77,6 +78,21 @@ def create_twitter_signature(method, url, parameters={}, consumer_secret="", tok
 
 def create_twitter_auth_header(oauth_headers):
     return f'OAuth oauth_nonce="{oauth_headers["oauth_nonce"]}", oauth_signature_method="{oauth_headers["oauth_signature_method"]}", oauth_timestamp="{oauth_headers["oauth_timestamp"]}", oauth_consumer_key="{oauth_headers["oauth_consumer_key"]}", oauth_signature="{oauth_headers["oauth_signature"]}", oauth_version="{oauth_headers["oauth_version"]}"'
+
+
+# BASIC AUTHENTICATION WRAPPER
+def requires_basic_authentication(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        try:
+            auth = request.authorization
+            if not auth or not is_authenticated(auth.username, auth.password):
+                return unauthorized()
+            return f(*args, **kwargs)
+        except Exception as e:
+            logger.exception(e)
+
+    return wrapper
 
 
 def is_authenticated(username, password):

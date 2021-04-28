@@ -2,8 +2,7 @@ from flask import Flask, request, jsonify
 from waitress import serve
 from paste.translogger import TransLogger
 from config import logger
-from rphelpers import log_payload, create_response, is_authenticated, unauthorized
-from functools import wraps
+from rphelpers import log_payload, create_response
 
 # APP CONFIG
 api = Flask(__name__)
@@ -19,21 +18,6 @@ if __name__ == '__main__':
         serve(TransLogger(api, logger=logger), host='0.0.0.0', port=5000, threads=16)
     except Exception as ex:
         logger.exception(ex)
-
-
-# BASIC AUTHENTICATION WRAPPER
-def requires_basic_authentication(f):
-    @wraps(f)
-    def wrapper(*args, **kwargs):
-        try:
-            auth = request.authorization
-            if not auth or not is_authenticated(auth.username, auth.password):
-                return unauthorized()
-            return f(*args, **kwargs)
-        except Exception as e:
-            logger.exception(e)
-
-    return wrapper
 
 
 # CORS CHECKPOINT
